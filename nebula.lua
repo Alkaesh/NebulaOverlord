@@ -56,6 +56,18 @@ end
 local function toticks(time)
     return math.floor(time / globals.tickinterval() + 0.5)
 end
+
+-- [[ Effects Storage ]] (Перемещено сюда)
+local effects = {
+    menu_open = false,
+    menu_fade_alpha = 0,
+    welcome_active = true,
+    welcome_alpha = 255,
+    stars = {},
+    hitmarkers = {} -- Добавлено здесь
+}
+
+-- Новая функция для добавления хитмаркеров
 local function add_hitmarker(e)
     if client.userid_to_entindex(e.attacker) == entity.get_local_player() then
         local x, y, z = entity.hitbox_position(client.userid_to_entindex(e.userid), e.hitgroup)
@@ -82,16 +94,6 @@ local function draw_hitmarkers()
         if hit.alpha < 1 then table.remove(effects.hitmarkers, i) end
     end
 end
-local function hide_original_menu(state)
--- [[ Effects Storage ]]
-local effects = {
-    menu_open = false,
-    menu_fade_alpha = 0,
-    welcome_active = true,
-    welcome_alpha = 255,
-    stars = {},
-    hitmarkers = {} 
-}
 
 -- [[ Generate Cosmic Stars for Effects ]]
 local function generate_stars()
@@ -177,21 +179,6 @@ local ref = {
     quick_peek_assist = { ui.reference("RAGE", "Other", "Quick peek assist") },
     quick_peek_assist_mode = { ui.reference("RAGE", "Other", "Quick peek assist mode") }
 }
--- Переменные для Anti-Bruteforce
-local last_miss_time = 0
-local brute_state = { yaw_offset = 0, defensive = false, jitter_mode = "Off", body_yaw = 0 }
-
--- Обработчик промахов
-client.set_event_callback("aim_miss", function(e)
-    if not lua_menu.antiaim.anti_bruteforce:get() then return end
-    if globals.curtime() - last_miss_time > lua_menu.antiaim.anti_bruteforce_reset:get() then
-        brute_state.yaw_offset = math.random(-60, 60)
-        brute_state.defensive = not brute_state.defensive -- Переключение Defensive
-        brute_state.jitter_mode = math.random(0, 1) == 0 and "Random" or "Pulse" -- Случайный jitter
-        brute_state.body_yaw = math.random(-90, 90) -- Случайный body yaw
-        last_miss_time = globals.curtime()
-    end
-end)
 -- [[ Nebula Overlord Menu ]]
 local lua_menu = {
     main = {
@@ -209,8 +196,6 @@ local lua_menu = {
         key_forward = lua_group:hotkey('\vN · \rManual Forward'),
         yaw_base = lua_group:combobox("\vN · \rYaw Base", {"Local View", "At Targets"}),
         condition = lua_group:combobox('\vN · \rCurrent Condition', antiaim_cond),
-        anti_bruteforce = lua_group:checkbox("\vN · \rAnti-Bruteforce"),
-        anti_bruteforce_reset = lua_group:slider("\vN · \rReset Delay", 0.5, 5, 1, true, "s", 0.1),
     },
     misc = {
         cross_ind = lua_group:checkbox("\vN · \rCrosshair HUD", {30, 144, 255}),
@@ -342,8 +327,6 @@ lua_menu.antiaim.key_freestand:depend(aa_tab, {lua_menu.antiaim.yaw_direction, "
 lua_menu.antiaim.key_left:depend(aa_tab, {lua_menu.antiaim.yaw_direction, "Manual"}, aa_settings)
 lua_menu.antiaim.key_right:depend(aa_tab, {lua_menu.antiaim.yaw_direction, "Manual"}, aa_settings)
 lua_menu.antiaim.key_forward:depend(aa_tab, {lua_menu.antiaim.yaw_direction, "Manual"}, aa_settings)
-lua_menu.antiaim.anti_bruteforce:depend(aa_tab, aa_settings)
-lua_menu.antiaim.anti_bruteforce_reset:depend(aa_tab, {lua_menu.antiaim.anti_bruteforce, true}, aa_settings)
 lua_menu.misc.cross_ind:depend(visual_tab)
 lua_menu.misc.cross_ind_type:depend(visual_tab, {lua_menu.misc.cross_ind, true})
 lua_menu.misc.info_panel:depend(visual_tab)
@@ -639,25 +622,6 @@ local function aa_setup(cmd)
     ui.set(ref.yawbase, lua_menu.antiaim.yaw_base:get())
 
     local selected_builder_def = antiaim_system[id].defensive:get() and antiaim_system[id].defensive_type:get() == "Custom" and is_defensive_active(lp)
-
-    -- Anti-Bruteforce логика
-    if lua_menu.antiaim.anti_bruteforce:get() and last_miss_time > 0 and globals.curtime() - last_miss_time < lua_menu.antiaim.anti_bruteforce_reset:get() then
-        yaw_amount = yaw_amount + brute_state.yaw_offset
-        if brute_state.defensive then
-            ui.set(ref.yawjitter[1], brute_state.jitter_mode)
-            ui.set(ref.yawjitter[2], math.random(50, 100)) -- Случайный jitter range
-            ui.set(ref.bodyyaw[1], "Pulse")
-            ui.set(ref.bodyyaw[2], brute_state.body_yaw)
-            selected_builder_def = true -- Включаем Defensive режим
-        else
-            ui.set(ref.yawjitter[1], "Off")
-            ui.set(ref.bodyyaw[1], "Static")
-            ui.set(ref.bodyyaw[2], 0)
-        end
-    else
-        brute_state.yaw_offset = 0
-        brute_state.defensive = false
-    end
 
     if selected_builder_def then
         ui.set(ref.yawjitter[1], antiaim_system[id].def_mod_type:get())
@@ -1957,9 +1921,9 @@ client.set_event_callback('paint_ui', function()
     update_menu()
 end)
 
-client.set_event_callback("paint", function()
+client.set_event_callback('paint', function()
     if not lua_menu.main.enable:get() then return end
-    clantag_en()
+    clantag_en() -- Обновленный вызов клантэга
     if not entity.is_alive(entity.get_local_player()) then return end
     if lua_menu.misc.cross_ind:get() then screen_indicator() end
     thirdperson(lua_menu.misc.third_person:get() and lua_menu.misc.third_person_value:get() or nil)
@@ -1974,7 +1938,7 @@ client.set_event_callback("paint", function()
         ai_peek_runner()
     end
     text_fade_animation(screen[1]/2, screen[2] - 20, -1.5, {r=135, g=206, b=235, a=255}, {r=30, g=144, b=255, a=255}, "Nebula Overlord", "cdb")
-    draw_hitmarkers() -- Добавлено здесь
+    draw_hitmarkers() 
     effects.menu_open = ui.is_menu_open()
     render_cosmic_menu_effect()
     if effects.welcome_active then render_welcome_effect() end
@@ -2002,10 +1966,10 @@ client.set_event_callback("player_connect_full", function(e)
         effects.welcome_active = true
         effects.welcome_alpha = 255
         generate_stars()
-        client.set_event_callback("player_hurt", add_hitmarker)
-        
     end
 end)
+
+client.set_event_callback("player_hurt", add_hitmarker)
 
 -- Дополнительные callbacks для AI Peek
 client.set_event_callback("aim_fire", ai_peek_ragebot)
