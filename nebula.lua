@@ -64,8 +64,36 @@ local effects = {
     welcome_active = true,
     welcome_alpha = 255,
     stars = {},
-    hitmarkers = {} -- Добавлено здесь
+    hitmarkers = {}
 }
+
+-- Новая функция для добавления хитмаркеров
+local function add_hitmarker(e)
+    if client.userid_to_entindex(e.attacker) == entity.get_local_player() then
+        local x, y, z = entity.hitbox_position(client.userid_to_entindex(e.userid), e.hitgroup) -- Исправлена опечатка
+        for i = 1, 5 do
+            table.insert(effects.hitmarkers, {
+                x = x + math.random(-10, 10),
+                y = y + math.random(-10, 10),
+                z = z + math.random(-10, 10),
+                alpha = 255,
+                lifetime = globals.curtime() + 0.5
+            })
+        end
+    end
+end
+
+-- Новая функция для отрисовки хитмаркеров
+local function draw_hitmarkers()
+    for i, hit in ipairs(effects.hitmarkers) do
+        hit.alpha = lerp(hit.alpha, 0, globals.frametime() * 5)
+        local sx, sy = renderer.world_to_screen(hit.x, hit.y, hit.z)
+        if sx then
+            renderer.text(sx, sy, 135, 206, 235, hit.alpha, "c", 0, "*")
+        end
+        if hit.alpha < 1 then table.remove(effects.hitmarkers, i) end
+    end
+end
 
 -- Новая функция для добавления хитмаркеров
 local function add_hitmarker(e)
