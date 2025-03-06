@@ -14,6 +14,21 @@ local json = require("json")
 local bit = require("bit")
 local trace = require("gamesense/trace")
 
+-- Speedhack Variables
+local speed_enabled = false
+local base_speed = 1.0
+local current_speed = base_speed
+local target_speed = base_speed
+local speed_multiplier = 2.0
+local lerp_rate = 0.1
+local anti_detect_enabled = true
+local fake_lag_enabled = false
+local fake_lag_amount = 6
+local speed_boost_key = false
+local speed_indicator_enabled = true
+local indicator_x, indicator_y = center[1], center[2] + 100
+local indicator_r, indicator_g, indicator_b, indicator_alpha = 135, 206, 235, 255
+
 -- [[ Screen Size ]]
 local screen = {client.screen_size()}
 local center = {screen[1]/2, screen[2]/2}
@@ -340,6 +355,13 @@ lua_menu.exploits.unlimited_bt_priority:depend(exploits_tab, {lua_menu.exploits.
 lua_menu.exploits.phantom_reload:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true})
 lua_menu.exploits.phantom_reload_key:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.phantom_reload, true})
 lua_menu.exploits.phantom_reload_interval:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.phantom_reload, true})
+lua_menu.exploits.speedhack:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true})
+lua_menu.exploits.speedhack_key:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true})
+lua_menu.exploits.speed_multiplier:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true})
+lua_menu.exploits.speed_lerp:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true})
+lua_menu.exploits.speed_anti_detect:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true})
+lua_menu.exploits.speed_fake_lag:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true})
+lua_menu.exploits.speed_fake_lag_amount:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.speedhack, true}, {lua_menu.exploits.speed_fake_lag, true})
 lua_menu.exploits.ai_peek:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true})
 lua_menu.exploits.ai_peek_key:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.ai_peek, true})
 lua_menu.exploits.ai_peek_mode:depend(exploits_tab, {lua_menu.exploits.exploits_enabled, true}, {lua_menu.exploits.ai_peek, true})
@@ -1879,7 +1901,73 @@ client.set_event_callback("setup_command", function(cmd)
     unlimited_backtrack_exploit(cmd)
     phantom_reload_exploit(cmd)
     ai_peek_exploit(cmd)
+    speedhack(cmd)
 end)
+-- Speedhack Cleanup
+client.set_event_callback("shutdown", function()
+    local lp = entity.get_local_player()
+    if lp then
+        entity.set_prop(lp, "m_flVelocityModifier", 1.0)
+    end
+end)
+-- Speedhack Functions
+local function clamp(value, min, max) return math.min(math.max(value, min), max) end
+
+local function speedhack(cmd)
+    if not lua_menu.exploits.exploits_enabled:get() or not lua_menu.exploits.speedhack:get() then
+        speed_enabled = false
+        current_speed = base_speed
+        return
+    end
+
+    speed_enabled = lua_menu.exploits.speedhack_key:get()
+    speed_multiplier = lua_menu.exploits.speed_multiplier:get()
+    lerp_rate = lua_menu.exploits.speed_lerp:get()
+    anti_detect_enabled = lua_menu.exploits.speed_anti_detect:get()
+    fake_lag_enabled = lua_menu.exploits.speed_fake_lag:get()
+    fake_lag_amount = lua_menu.exploits.speed_fake_lag_amount:get()
+
+    local lp = entity.get_local_player()
+    if not lp or not entity.is_alive(lp) then
+        speed_enabled = false
+        current_speed = base_speed
+        return
+    end
+
+    if speed_enabled then
+        target_speed = speed_multiplier
+    else
+        target_speed = base_speed
+    end
+
+    -- Плавный переход скорости
+    current_speed = lerp(current_speed, target_speed, globals.frametime() * lerp_rate * 20)
+
+    -- Применение скорости через m_flVelocityModifier
+    entity.set_prop(lp, "m_flVelocityModifier", clamp(current_speed, 0.1, 5.0))
+
+    -- Антидетект: маскировка через фейк-лаги
+    if anti_detect_enabled and fake_lag_enabled then
+        ui.set(ref.fakelag_limit, fake_lag_amount)
+        ui.set(ref.fakelag_enabled, true)
+    else
+        ui.set(ref.fakelag_enabled, false)
+    end
+
+    -- Ускорение движения через cmd
+    if speed_enabled then
+        cmd.forwardmove = cmd.forwardmove * current_speed
+        cmd.sidemove = cmd.sidemove * current_speed
+    end
+end
+
+local function draw_speed_indicator()
+    if not lua_menu.exploits.exploits_enabled:get() or not lua_menu.exploits.speedhack:get() or not speed_enabled then return end
+    local r1, g1, b1 = 135, 206, 235
+    local r2, g2, b2 = 30, 144, 255
+    local alpha = 255 * (1 + math.sin(globals.curtime() * 3)) / 2 -- Пульсация
+    text_fade_animation(indicator_x, indicator_y, -1.5, {r=r1, g=g1, b=b1, a=alpha}, {r=r2, g=g2, b=b2, a=alpha}, string.format("Speed: %.1fx", current_speed), "c")
+end
 
 client.set_event_callback('pre_render', function()
     if not lua_menu.main.enable:get() then return end
@@ -1987,6 +2075,14 @@ local function ai_peek_menu_handler()
     lua_menu.exploits.phantom_reload:set_visible(enabled)
     lua_menu.exploits.phantom_reload_key:set_visible(enabled and lua_menu.exploits.phantom_reload:get())
     lua_menu.exploits.phantom_reload_interval:set_visible(enabled and lua_menu.exploits.phantom_reload:get())
+    -- Speedhack UI
+lua_menu.exploits.speedhack = lua_group:checkbox("\vN · \rSpeedhack")
+lua_menu.exploits.speedhack_key = lua_group:hotkey("\vN · \rSpeedhack Key", true)
+lua_menu.exploits.speed_multiplier = lua_group:slider("\vN · \rSpeed Multiplier", 1.0, 5.0, 2.0, true, "x", 0.1)
+lua_menu.exploits.speed_lerp = lua_group:slider("\vN · \rLerp Rate", 0.01, 0.5, 0.1, true, "", 0.01)
+lua_menu.exploits.speed_anti_detect = lua_group:checkbox("\vN · \rAnti-Detect")
+lua_menu.exploits.speed_fake_lag = lua_group:checkbox("\vN · \rFake Lag")
+lua_menu.exploits.speed_fake_lag_amount = lua_group:slider("\vN · \rFake Lag Amount", 1, 14, 6, true, "t")
 end
 
 ai_peek_menu_handler()
