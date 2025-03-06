@@ -1,20 +1,17 @@
---[[ Nebula Overlord ]]
--- Originally developed by unknown, rebranded and redesigned by [Your Name] for xAI
--- Current Date: March 03, 2025
-
-local ffi = require("ffi")
-local c_entity = require("gamesense/entity")
-local pui = require("gamesense/pui")
-local http = require("gamesense/http")
-local base64 = require("gamesense/base64")
-local clipboard = require("gamesense/clipboard")
-local websocket = require("gamesense/websockets")
-local vector = require("vector")
-local json = require("json")
-local bit = require("bit")
-local trace = require("gamesense/trace")
-
--- Speedhack Variables
+local pui = require 'gamesense/pui'
+local vector = require 'vector'
+local base64 = require 'gamesense/base64'
+local json = require 'json'
+local bit = require 'bit'
+local trace = require 'gamesense/trace'
+local screen = {client.screen_size()}
+local center = {screen[1]/2, screen[2]/2}
+local effects = {
+    stars = {},
+    welcome_active = true,
+    welcome_alpha = 255
+}
+-- Speedhack Variables (Часть 1: вставлено после screen и center)
 local speed_enabled = false
 local base_speed = 1.0
 local current_speed = base_speed
@@ -29,9 +26,7 @@ local speed_indicator_enabled = true
 local indicator_x, indicator_y = center[1], center[2] + 100
 local indicator_r, indicator_g, indicator_b, indicator_alpha = 135, 206, 235, 255
 
--- [[ Screen Size ]]
-local screen = {client.screen_size()}
-local center = {screen[1]/2, screen[2]/2}
+
 
 -- [[ PUI Groups and Accent ]]
 local lua_group = pui.group("AA", "Anti-aimbot angles")
