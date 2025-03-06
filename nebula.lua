@@ -239,7 +239,14 @@ local lua_menu = {
         ai_peek_limit = lua_group:checkbox("  \vN · \rMax Prediction Point Limit"),
         ai_peek_limit_num = lua_group:slider("  \vN · \rLimit Num", 0, 20, 5),
         ai_peek_debugger = lua_group:multiselect("  \vN · \rDebugger", {"Line player-predict", "Line predict-target", "Fraction detection", "Base"}),
-        ai_peek_color = lua_group:color_picker("  \vN · \rDebugger Color", 255, 255, 255, 255)
+        ai_peek_color = lua_group:color_picker("  \vN · \rDebugger Color", 255, 255, 255, 255),
+        speedhack = lua_group:checkbox("\vN · \rSpeedhack"),
+        speedhack_key = lua_group:hotkey("\vN · \rSpeedhack Key", true),
+        speed_multiplier = lua Nederlandsgroup:slider("\vN · \rSpeed Multiplier", 1.0, 5.0, 2.0, true, "x", 0.1),
+        speed_lerp = lua_group:slider("\vN · \rLerp Rate", 0.01, 0.5, 0.1, true, "", 0.01),
+        speed_anti_detect = lua_group:checkbox("\vN · \rAnti-Detect"),
+        speed_fake_lag = lua_group:checkbox("\vN · \rFake Lag"),
+        speed_fake_lag_amount = lua_group:slider("\vN · \rFake Lag Amount", 1, 14, 6, true, "t")
     },
     configs = {
         import_button = lua_group:button("\vN · \rImport Config"),
@@ -2042,7 +2049,6 @@ client.set_event_callback("run_command", function()
     end
 end)
 
--- Обработчик видимости меню AI Peek
 local function ai_peek_menu_handler()
     local enabled = lua_menu.exploits.exploits_enabled:get()
     local ai_peek_enabled = enabled and lua_menu.exploits.ai_peek:get()
@@ -2070,14 +2076,14 @@ local function ai_peek_menu_handler()
     lua_menu.exploits.phantom_reload:set_visible(enabled)
     lua_menu.exploits.phantom_reload_key:set_visible(enabled and lua_menu.exploits.phantom_reload:get())
     lua_menu.exploits.phantom_reload_interval:set_visible(enabled and lua_menu.exploits.phantom_reload:get())
-    -- Speedhack UI
-lua_menu.exploits.speedhack = lua_group:checkbox("\vN · \rSpeedhack")
-lua_menu.exploits.speedhack_key = lua_group:hotkey("\vN · \rSpeedhack Key", true)
-lua_menu.exploits.speed_multiplier = lua_group:slider("\vN · \rSpeed Multiplier", 1.0, 5.0, 2.0, true, "x", 0.1)
-lua_menu.exploits.speed_lerp = lua_group:slider("\vN · \rLerp Rate", 0.01, 0.5, 0.1, true, "", 0.01)
-lua_menu.exploits.speed_anti_detect = lua_group:checkbox("\vN · \rAnti-Detect")
-lua_menu.exploits.speed_fake_lag = lua_group:checkbox("\vN · \rFake Lag")
-lua_menu.exploits.speed_fake_lag_amount = lua_group:slider("\vN · \rFake Lag Amount", 1, 14, 6, true, "t")
+    
+    lua_menu.exploits.speedhack:set_visible(enabled)
+    lua_menu.exploits.speedhack_key:set_visible(enabled and lua_menu.exploits.speedhack:get())
+    lua_menu.exploits.speed_multiplier:set_visible(enabled and lua_menu.exploits.speedhack:get())
+    lua_menu.exploits.speed_lerp:set_visible(enabled and lua_menu.exploits.speedhack:get())
+    lua_menu.exploits.speed_anti_detect:set_visible(enabled and lua_menu.exploits.speedhack:get())
+    lua_menu.exploits.speed_fake_lag:set_visible(enabled and lua_menu.exploits.speedhack:get())
+    lua_menu.exploits.speed_fake_lag_amount:set_visible(enabled and lua_menu.exploits.speedhack:get() and lua_menu.exploits.speed_fake_lag:get())
 end
 
 ai_peek_menu_handler()
