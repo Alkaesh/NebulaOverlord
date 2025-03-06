@@ -56,72 +56,14 @@ end
 local function toticks(time)
     return math.floor(time / globals.tickinterval() + 0.5)
 end
-
--- [[ Effects Storage ]] (Перемещено сюда)
+-- [[ Effects Storage ]]
 local effects = {
     menu_open = false,
     menu_fade_alpha = 0,
     welcome_active = true,
     welcome_alpha = 255,
-    stars = {},
-    hitmarkers = {}
+    stars = {}
 }
-
--- Новая функция для добавления хитмаркеров
-local function add_hitmarker(e)
-    if client.userid_to_entindex(e.attacker) == entity.get_local_player() then
-        local x, y, z = entity.hitbox_position(client.userid_to_entindex(e.userid), e.hitgroup) -- Исправлена опечатка
-        for i = 1, 5 do
-            table.insert(effects.hitmarkers, {
-                x = x + math.random(-10, 10),
-                y = y + math.random(-10, 10),
-                z = z + math.random(-10, 10),
-                alpha = 255,
-                lifetime = globals.curtime() + 0.5
-            })
-        end
-    end
-end
-
--- Новая функция для отрисовки хитмаркеров
-local function draw_hitmarkers()
-    for i, hit in ipairs(effects.hitmarkers) do
-        hit.alpha = lerp(hit.alpha, 0, globals.frametime() * 5)
-        local sx, sy = renderer.world_to_screen(hit.x, hit.y, hit.z)
-        if sx then
-            renderer.text(sx, sy, 135, 206, 235, hit.alpha, "c", 0, "*")
-        end
-        if hit.alpha < 1 then table.remove(effects.hitmarkers, i) end
-    end
-end
-
--- Новая функция для добавления хитмаркеров
-local function add_hitmarker(e)
-    if client.userid_to_entindex(e.attacker) == entity.get_local_player() then
-        local x, y, z = entity.hitbox_position(client.userid_to_entindex(e.userid), e.hitgroup)
-        for i = 1, 5 do
-            table.insert(effects.hitmarkers, {
-                x = x + math.random(-10, 10),
-                y = y + math.random(-10, 10),
-                z = z + math.random(-10, 10),
-                alpha = 255,
-                lifetime = globals.curtime() + 0.5
-            })
-        end
-    end
-end
-
--- Новая функция для отрисовки хитмаркеров
-local function draw_hitmarkers()
-    for i, hit in ipairs(effects.hitmarkers) do
-        hit.alpha = lerp(hit.alpha, 0, globals.frametime() * 5)
-        local sx, sy = renderer.world_to_screen(hit.x, hit.y, hit.z)
-        if sx then
-            renderer.text(sx, sy, 135, 206, 235, hit.alpha, "c", 0, "*")
-        end
-        if hit.alpha < 1 then table.remove(effects.hitmarkers, i) end
-    end
-end
 
 -- [[ Generate Cosmic Stars for Effects ]]
 local function generate_stars()
@@ -1966,7 +1908,6 @@ client.set_event_callback('paint', function()
         ai_peek_runner()
     end
     text_fade_animation(screen[1]/2, screen[2] - 20, -1.5, {r=135, g=206, b=235, a=255}, {r=30, g=144, b=255, a=255}, "Nebula Overlord", "cdb")
-    draw_hitmarkers() 
     effects.menu_open = ui.is_menu_open()
     render_cosmic_menu_effect()
     if effects.welcome_active then render_welcome_effect() end
@@ -1996,8 +1937,6 @@ client.set_event_callback("player_connect_full", function(e)
         generate_stars()
     end
 end)
-
-client.set_event_callback("player_hurt", add_hitmarker)
 
 -- Дополнительные callbacks для AI Peek
 client.set_event_callback("aim_fire", ai_peek_ragebot)
