@@ -4,6 +4,7 @@ local base64 = require 'gamesense/base64'
 local json = require 'json'
 local bit = require 'bit'
 local trace = require 'gamesense/trace'
+local ffi = require "ffi" -- Убедись, что эта строка есть
 local screen = {client.screen_size()}
 local center = {screen[1]/2, screen[2]/2}
 local effects = {
@@ -11,7 +12,7 @@ local effects = {
     welcome_active = true,
     welcome_alpha = 255
 }
--- Speedhack Variables (Часть 1: вставлено после screen и center)
+-- Speedhack Variables (Часть 1)
 local speed_enabled = false
 local base_speed = 1.0
 local current_speed = base_speed
@@ -243,7 +244,7 @@ local lua_menu = {
         speedhack = lua_group:checkbox("\vN · \rSpeedhack"),
         speedhack_key = lua_group:hotkey("\vN · \rSpeedhack Key", true),
         speed_multiplier = lua_group:slider("\vN · \rSpeed Multiplier", 1.0, 5.0, 2.0, true, "x", 0.1),
-        speed_lerp = lua_group:slider("\vN · \rLerp Rate", 0.01, 0.5, 0.1, true, "", 0.01),
+        speed_lerp = lua_group:slider("\vN · \rLerp Rate", 0.1, 1.0, 0.5, true, "", 0.1),
         speed_anti_detect = lua_group:checkbox("\vN · \rAnti-Detect"),
         speed_fake_lag = lua_group:checkbox("\vN · \rFake Lag"),
         speed_fake_lag_amount = lua_group:slider("\vN · \rFake Lag Amount", 1, 14, 6, true, "t")
